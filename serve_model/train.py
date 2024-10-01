@@ -1,4 +1,4 @@
-import keras
+from sklearn.linear_model import Ridge
 import numpy as np
 import pandas as pd
 from hyperopt import STATUS_OK, Trials, fmin, hp, tpe
@@ -14,44 +14,25 @@ def train_model(params, epochs, train_x, train_y, valid_x, valid_y, test_x, test
     # Define model architecture
     mean = np.mean(train_x, axis=0)
     var = np.var(train_x, axis=0)
-    model = keras.Sequential(
-        [
-            keras.Input([train_x.shape[1]]),
-            keras.layers.Normalization(mean=mean, variance=var),
-            keras.layers.Dense(64, activation="relu"),
-            keras.layers.Dense(1),
-        ]
-    )
 
-    # Compile model
-    model.compile(
-        optimizer=keras.optimizers.SGD(
-            learning_rate=params["lr"], momentum=params["momentum"]
-        ),
-        loss="mean_squared_error",
-        metrics=[keras.metrics.RootMeanSquaredError()],
-    )
+    model = Ridge(alpha=params["alpha"], solver='auto')
+
 
     # Train model with MLflow tracking
     with mlflow.start_run(nested=True):
         mlflow.log_input(dataset, context="training")
-        model.fit(
-            train_x,
-            train_y,
-            validation_data=(valid_x, valid_y),
-            epochs=epochs,
-            batch_size=64,
-        )
-        # Evaluate the model
-        eval_result = model.evaluate(valid_x, valid_y, batch_size=64)
-        eval_rmse = eval_result[1]
+
+        model.fit(train_x, train_y)
+
+        valid_preds = model.predict(valid_x)
+
+        eval_rmse = mean_squared_error(valid_y, valid_preds, squared=False)
 
         # Log parameters and results
         mlflow.log_params(params)
         mlflow.log_metric("eval_rmse", eval_rmse)
 
-        # Log model
-        mlflow.tensorflow.log_model(model, "model", signature=signature)
+        mlflow.sklearn.log_model(model, "model", signature=signature)
 
         return {"loss": eval_rmse, "status": STATUS_OK, "model": model}
 
@@ -73,7 +54,7 @@ def objective(params, train_x, train_y, valid_x, valid_y, test_x, test_y, signat
 
 
 def train():
-    dataset_source_url = "https://raw.githubusercontent.com/mlflow/mlflow/master/tests/datasets/winequality-white.csv"
+    dataset_source_url = "../data/winequality-white.csv"
     data = pd.read_csv(
         dataset_source_url,
         sep=";",
@@ -91,14 +72,12 @@ def train():
     signature = infer_signature(train_x, train_y)
     dataset: PandasDataset = from_pandas(data, source=dataset_source_url)
 
-    #Defing Search space for hyper parameters
     space = {
-        "lr": hp.loguniform("lr", np.log(1e-5), np.log(1e-1)),
-        "momentum": hp.uniform("momentum", 0.0, 1.0),
+        "alpha": hp.loguniform("alpha", np.log(1e-3), np.log(10))  # Ridge regularization strength
     }
 
-    remote_server_uri = "http://localhost:8080"  # set to your server URI
-    mlflow.set_tracking_uri(remote_server_uri)
+    # remote_server_uri = "http://localhost:8080"  # set to your server URI
+    # mlflow.set_tracking_uri(remote_server_uri)
 
     mlflow.set_experiment("/wine-quality")
 
@@ -119,7 +98,7 @@ def train():
         # Log the best parameters, loss, and model
         mlflow.log_params(best)
         mlflow.log_metric("eval_rmse", best_run["loss"])
-        mlflow.tensorflow.log_model(best_run["model"], "model", signature=signature)
+        mlflow.sklearn.log_model(best_run["model"], "model", signature=signature)
 
         # Print out the best parameters and corresponding loss
         print(f"Best parameters: {best}")
