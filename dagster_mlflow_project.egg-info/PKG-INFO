@@ -1,5 +1,5 @@
 Metadata-Version: 2.1
-Name: dagster_mlflow_project
+Name: dagster-mlflow-project
 Version: 0.0.0
 Requires-Dist: dagster
 Requires-Dist: mlflow
