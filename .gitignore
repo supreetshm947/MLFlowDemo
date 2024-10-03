@@ -1,4 +1,5 @@
 mlartifacts
 mlruns
 .idea
+__pycache__
 logs.txt
