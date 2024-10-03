@@ -11,9 +11,6 @@ from mlflow.models import infer_signature
 
 
 def train_model(params, epochs, train_x, train_y, valid_x, valid_y, test_x, test_y, signature, dataset):
-    # Define model architecture
-    mean = np.mean(train_x, axis=0)
-    var = np.var(train_x, axis=0)
 
     model = Ridge(alpha=params["alpha"], solver='auto')
 
