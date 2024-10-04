@@ -21,7 +21,7 @@ def evaluate():
 
     model = mlflow.sklearn.load_model(model_uri)
 
-    data = pd.read_csv("../data/winequality-white.csv", sep=";")
+    data = pd.read_csv("data/winequality-white.csv", sep=";")
 
     sample_data = data.sample(n=5, random_state=42)
 
