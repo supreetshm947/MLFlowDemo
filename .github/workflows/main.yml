@@ -27,8 +27,11 @@ jobs:
       # To Do
 
       # Run our pipeline
-      - name: Run mlflow pipeline 
-        run: |
-          dagster job execute -f dagster_mlflow_project/initiate_pipeline.py --job daily_refresh
+      - name: Run mlflow pipeline
+        run: dagster job execute -f dagster_mlflow_project/initiate_pipeline.py --job daily_refresh
 
+      # Evaluate the model
+      - name: Evaluate model
+        run: |
+          python dagster_mlflow_project_evaluate/evaluate.py
 

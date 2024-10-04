@@ -3,3 +3,4 @@ mlruns
 .idea
 __pycache__
 logs.txt
+dagster_mlflow_project.egg-info/
